@@ -3,16 +3,27 @@ import math
 
 
 class Frame:
-	def __init__(self, units, x, y, width, height, celular_width, celular_height):
+	def __init__(self, units, x0, y0, width, height, celular_width, celular_height):
 
-		self.x = x
-		self.y = y
+		# x0 and y0 are the absolute position where the scene should start
+		# x0 + x = where to paste the scene 
+		self.x = x0
+		self.y = y0
 
+		# How many blocks make up a given frame
 		self.cell_units =  units
+
+		# This is for non-square blocks
+		# For example, a map made out of corridors, there will be horizontal and vertical
 		direction = random.choice(["horizontal", "vertical"])
+		# Depending on which is chosen, the widths and heights are switched
 		if direction == "horizontal":
+
+			# frame width and height are the max size of the frame
 			self.frame_width = width
 			self.frame_height = height
+			# celular size varies from a minimum to a meximum
+			# how many cell blocks there are is set by cell_units above
 			self.max_celular_width = celular_width[1]
 			self.min_celular_width = celular_width[0]
 			self.max_celular_height = celular_height[1]
@@ -32,19 +43,21 @@ class Frame:
 		print("Celular Height: " + str(self.min_celular_height) + " - " + str(self.max_celular_height))
 
 		self.frame_array = []
+		# frame array starts with rows, which are column arrays.
+		# each position is a cell. It is set to the max size of the frame: frame height and width
 		for y in range(self.frame_height):
 			row = []
 			for x in  range(self.frame_width):
+				# The cell is created empty of information
 				cell = Cell();
 				row.append(cell)
 			self.frame_array.append(row)
 		
+		# Adds a block to the cells. Starts as the first one
 		self.add_celular_unit()
+		self.add_celular_unit(False)
 
-		self.prioritize()
 
-		for i in range(self.cell_units - 1):
-			xprint("Add range")
 
 	def save_in_file(self):
 		pass
@@ -63,134 +76,102 @@ class Frame:
 			print(printed_row)
 		print("-" * self.frame_width + "--")
 
-	def add_celular_unit(self, first=True, x_position=0, y_position=0):
+	def add_celular_unit(self, first=True):
+		# Size of a unit in the frame
 		width = random.randint(self.min_celular_width, self.max_celular_width)
 		height = random.randint(self.min_celular_height, self.min_celular_height)
 
 		xprint("Cell width: " + str(width))
 		xprint("Cell height: " + str(height))
 
-		if (first):
-			space_left_width = self.frame_width - width
-			if (space_left_width <= 1):
-				x_position = 0
-			else:
-				x_position = math.floor(space_left_width/2)
+		if (first): # First block
 
-			xprint("x_position: " + str(x_position))
+			# Middle point of the frame (int)
+			middle_point_width = self.frame_width//2
+			middle_point_height = self.frame_height//2
 
-			space_left_height = self.frame_height - height
-			if (space_left_height <= 1):
-				y_position = 0
-			else:
-				y_position = math.floor(space_left_height/2)
+			# Where the block starts (upper left corner)
+			# The middle point of the frame minus hald of  the size of the block
+			start_point_width = middle_point_width - width//2
+			start_point_height = middle_point_height - height//2
 
-			xprint("y_position: " + str(y_position))
-
-			for y in range(y_position, y_position + height):
-				for x in range(x_position, x_position + width):
-					if y < 0 or x < 0 or y == self.frame_height or x == self.frame_width:
-						continue
-					else:
-						cell = self.frame_array[y][x]
-						cell.fill(x + self.x, y + self.y)
-
-
-		else:
+		else: 
+			used_cells = self.get_all_cells()
+			start_cell = random.choice(used_cells)
+			
 			direction = random.choice(["top-left", "top-right", "bottom-right", "bottom-left"])
-			if (direction == "top-left"):
-				pass
-			elif (direction == "top-right"):
-				pass
-			elif (direction == "bottom-right"):
-				pass
-			elif (direction == "bottom-left"):
-				pass
+			if direction == "top-left":
+				start_point_height = start_cell.array_y - height
+				start_point_width = start_cell.array_x - width
+			elif direction == "top-right":
+				start_point_height = start_cell.array_y - height
+				start_point_width = start_cell.array_x + width
+			elif direction == "bottom-right":
+				start_point_height = start_cell.array_y + height
+				start_point_width = start_cell.array_x + width
+			elif direction == "bottom-left":
+				start_point_height = start_cell.array_y + height
+				start_point_width = start_cell.array_x - width
 
-	def prioritize(self):
-		priority = -1
-		labeled = 0
+			print("DIRECTION")
+			print(direction)
+			print("CELL STARTING POINT")
+			print(start_cell.array_y)
+			print(start_cell.array_x)
+			print("UNIT PROPERTIES")
+			print(height)
+			print(width)
+			print("RESULT")
+			print(start_point_height)
+			print(start_point_width)
 
-		while (labeled < self.frame_width * self.frame_height):
-			for y in range(self.frame_height):
-				for x in range(self.frame_height):
+
+		# Fill in the cell square
+		# go from start_point to height-width
+		for y in range(start_point_height, start_point_height + height):
+
+			for x in range(start_point_width, start_point_width + width):
+
+				# Positions not allowed:
+				# Less than 0
+				# Outoside of frame
+				# Leaving a margin for the walls
+				if y <= 0 or x <= 0:
+					continue
+				if y >= self.frame_height - 1 or x >= self.frame_width - 1:
+					continue
+				else:
+					# x,y are the position in the array
+					# self.x, self.y are the position in the Scene
 					cell = self.frame_array[y][x]
-
-					if cell.empty:
-						xprint(str(x) + "," + str(y))
-					else:
-						xprint(str(x) + "," + str(y) + " -> USED")
-
-					if (cell.empty == False and cell.priority == -1):
-						print("Filled and not set")
-						if (y-1 >= 0):
-							top_cell = self.frame_array[y-1][x]
-							if (top_cell.priority == priority):
-								cell.set_priority(priority + 1)
-								labeled += 1
-								xprint("set")
-								continue
-
-						if (x+1 < self.frame_width):
-							right_cell = self.frame_array[y][x+1]
-							if (right_cell.priority == priority):
-								cell.set_priority(priority + 1)
-								labeled += 1
-								xprint("set")
-								continue
-
-						if (y+1 < self.frame_height):
-							bottom_cell = self.frame_array[y+1][x]
-							if (bottom_cell.priority == priority):
-								cell.set_priority(priority + 1)
-								labeled += 1
-								xprint("set")
-								continue
-
-						if (x-1 >= 0):
-							left_cell = self.frame_array[y][x-1]
-							if (left_cell.priority == priority):
-								cell.set_priority(priority + 1)
-								labeled += 1
-								xprint("set")
-								continue
-					elif (cell.priority == -1):
-						xprint("Not filled and not set")
-						cell.set_priority(0)
-						labeled += 1
-						continue
-
-			xprint("Up the priority: " + str(priority))
-			priority += 1
+					cell.fill(x + self.x, y + self.y, x, y)
 
 
-
+	def get_all_cells(self):
+		array = []
+		frame_height = len(self.frame_array) - 1
+		frame_width = len(self.frame_array[0]) - 1
+		for y in range(0, frame_height):
+			for x in range(0, frame_width):
+				if not self.frame_array[y][x].empty:
+					array.append(self.frame_array[y][x])
+		return array
 
 
 class Cell:
-	def __init__(self, empty=True, x=None, y=None):
+	def __init__(self, empty=True):
 		self.empty = empty
-		self.x_position = x
-		self.y_position = y
-		self.category = []
-		self.img =  None
-		self.priority = -1
-		self.cell_code = "NULL" 
 
-	def fill(self, x, y):
+	def fill(self, x, y, array_x, array_y):
 		self.empty = False
 		self.x_position = x
 		self.y_position = y
-		self.priority = 0
-
-	def set_priority(self, priority):
-		self.priority = priority
+		self.array_x = array_x
+		self.array_y = array_y
 
 	def __str__(self):
 		if self.empty == False:
-			if (self.priority == -1):
-				return " "
-			return str(self.priority)
+			return "0"
 		else:
 			return " "
 
@@ -203,8 +184,9 @@ while (True):
 	character = input("Enter for new frame: ")
 
 	print("\n\n\n\n")
-	#frame =  Frame(1, 0, 0, 30, 30, [10, 20], [10, 20], True)
-	frame =  Frame(1, 0, 0, 8, 8, [5, 5], [5, 5], True)
+	
+	#units, x0, y0, width, height, celular_width, celular_height)
+	frame =  Frame(1, 0, 0, 20, 20, [5, 10], [5, 10])
 	frame.print()
 	print("\n\n\n\n")
 
