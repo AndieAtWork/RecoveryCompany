@@ -3,12 +3,15 @@ import math
 
 
 class Frame:
-	def __init__(self, units, x0, y0, width, height, celular_width, celular_height):
+	def __init__(self, units, x0, y0, width, height, celular_width, celular_height, safety_margin):
 
 		# x0 and y0 are the absolute position where the scene should start
 		# x0 + x = where to paste the scene 
 		self.x = x0
 		self.y = y0
+
+		# minimum closeness between units, the larger, the most likely to look like a square
+		self.safety_margin = safety_margin
 
 		# How many blocks make up a given frame
 		self.cell_units =  units
@@ -36,11 +39,11 @@ class Frame:
 			self.max_celular_height = celular_width[1]
 			self.min_celular_height = celular_width[0]
 
-		print("Total Width: " + str(self.frame_width))
-		print("Total Height: " +str(self.frame_height))
+		xprint("Total Width: " + str(self.frame_width))
+		xprint("Total Height: " +str(self.frame_height))
 
-		print("Celular Width: " + str(self.min_celular_width) + " - " + str(self.max_celular_width))
-		print("Celular Height: " + str(self.min_celular_height) + " - " + str(self.max_celular_height))
+		xprint("Celular Width: " + str(self.min_celular_width) + " - " + str(self.max_celular_width))
+		xprint("Celular Height: " + str(self.min_celular_height) + " - " + str(self.max_celular_height))
 
 		self.frame_array = []
 		# frame array starts with rows, which are column arrays.
@@ -49,13 +52,14 @@ class Frame:
 			row = []
 			for x in  range(self.frame_width):
 				# The cell is created empty of information
-				cell = Cell();
+				cell = Cell(self.frame_array);
 				row.append(cell)
 			self.frame_array.append(row)
 		
 		# Adds a block to the cells. Starts as the first one
 		self.add_celular_unit()
-		self.add_celular_unit(False)
+		for i in range(0, self.cell_units - 1):
+			self.add_celular_unit(False)
 
 
 
@@ -65,6 +69,7 @@ class Frame:
 	def load_from_file():
 		pass
 
+	# Prints the scene
 	def print(self):
 		print("-" * self.frame_width + "--")
 		for row in range(self.frame_height):
@@ -76,6 +81,7 @@ class Frame:
 			print(printed_row)
 		print("-" * self.frame_width + "--")
 
+	# Adds another unit. Can be the first
 	def add_celular_unit(self, first=True):
 		# Size of a unit in the frame
 		width = random.randint(self.min_celular_width, self.max_celular_width)
@@ -99,31 +105,33 @@ class Frame:
 			used_cells = self.get_all_cells()
 			start_cell = random.choice(used_cells)
 			
+			# the direction in which the unit will be written
+			# safety margin is how close the can be minimum
 			direction = random.choice(["top-left", "top-right", "bottom-right", "bottom-left"])
 			if direction == "top-left":
-				start_point_height = start_cell.array_y - height
-				start_point_width = start_cell.array_x - width
+				start_point_height = start_cell.array_y - height + self.safety_margin
+				start_point_width = start_cell.array_x - width + self.safety_margin
 			elif direction == "top-right":
-				start_point_height = start_cell.array_y - height
-				start_point_width = start_cell.array_x + width
+				start_point_height = start_cell.array_y - height + self.safety_margin
+				start_point_width = start_cell.array_x - self.safety_margin
 			elif direction == "bottom-right":
-				start_point_height = start_cell.array_y + height
-				start_point_width = start_cell.array_x + width
+				start_point_height = start_cell.array_y - self.safety_margin
+				start_point_width = start_cell.array_x - self.safety_margin
 			elif direction == "bottom-left":
-				start_point_height = start_cell.array_y + height
-				start_point_width = start_cell.array_x - width
+				start_point_height = start_cell.array_y - self.safety_margin
+				start_point_width = start_cell.array_x - width +  self.safety_margin
 
-			print("DIRECTION")
-			print(direction)
-			print("CELL STARTING POINT")
-			print(start_cell.array_y)
-			print(start_cell.array_x)
-			print("UNIT PROPERTIES")
-			print(height)
-			print(width)
-			print("RESULT")
-			print(start_point_height)
-			print(start_point_width)
+			xprint("DIRECTION")
+			xprint(direction)
+			xprint("CELL STARTING POINT")
+			xprint(start_cell.array_y)
+			xprint(start_cell.array_x)
+			xprint("UNIT PROPERTIES")
+			xprint(height)
+			xprint(width)
+			xprint("RESULT")
+			xprint(start_point_height)
+			xprint(start_point_width)
 
 
 		# Fill in the cell square
@@ -134,7 +142,7 @@ class Frame:
 
 				# Positions not allowed:
 				# Less than 0
-				# Outoside of frame
+				# Outside of frame
 				# Leaving a margin for the walls
 				if y <= 0 or x <= 0:
 					continue
@@ -147,6 +155,7 @@ class Frame:
 					cell.fill(x + self.x, y + self.y, x, y)
 
 
+	# To chose where to start the new unit, all ocupied cells SO FAR
 	def get_all_cells(self):
 		array = []
 		frame_height = len(self.frame_array) - 1
@@ -157,17 +166,50 @@ class Frame:
 					array.append(self.frame_array[y][x])
 		return array
 
+	def add_entrance(direction):
+		array = []
+		frame_height = len(self.frame_array) - 1
+		frame_width = len(self.frame_array[0]) - 1
+		for y in range(0, frame_height):
+			for x in range(0, frame_width):
+				cell = self.frame_array[y][x]
+				if cell.empty:
+					continue
+
+				if direction == "up":
+					pass
+				elif direction == "down":
+					pass
+				elif direction == "right":
+					pass
+				elif direction == "left":
+					pass
+
 
 class Cell:
-	def __init__(self, empty=True):
+	def __init__(self, frame, empty=True):
+		self.frame_array = frame
 		self.empty = empty
 
 	def fill(self, x, y, array_x, array_y):
+		# When filled, empty is False
 		self.empty = False
-		self.x_position = x
+		self.x_position = x # position in the game interface
 		self.y_position = y
-		self.array_x = array_x
+		self.array_x = array_x # position in the array
 		self.array_y = array_y
+
+	def get_positioning(self, direction):
+		if direction == "up":
+
+			#neighbour1 = 
+			#neighbour2 = 
+		elif direction == "down":
+			pass
+		elif direction == "right":
+			pass
+		elif direction == "left":
+			pass
 
 	def __str__(self):
 		if self.empty == False:
@@ -175,6 +217,7 @@ class Cell:
 		else:
 			return " "
 
+# testing
 def xprint(txt):
 	if False:
 		print(txt)
@@ -185,8 +228,8 @@ while (True):
 
 	print("\n\n\n\n")
 	
-	#units, x0, y0, width, height, celular_width, celular_height)
-	frame =  Frame(1, 0, 0, 20, 20, [5, 10], [5, 10])
+	#units, x0, y0, width, height, celular_width, celular_height, safety_margin)
+	frame =  Frame(3, 0, 0, 35, 35, [10, 20], [10, 20], 3)
 	frame.print()
 	print("\n\n\n\n")
 
